@@ -21,7 +21,8 @@ class HomeCapt : public QMainWindow
     void manageSignal();
     void manageSignal(const QString msg);
     void buildTree();
-    void plotIndex(QModelIndex index);
+    void fetchIndex(QModelIndex index);
+    void plot();
     void on_host_editingFinished();
 
     void on_connect_clicked(bool checked);
@@ -34,6 +35,8 @@ class HomeCapt : public QMainWindow
     Ui::HomeCapt *ui;
     HomeCaptAPI _api;
     QStandardItemModel *_locSensModel;
+    int _currentType;
+    int _currentSensor;
 };
 
 #endif // HOMECAPT_H

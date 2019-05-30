@@ -5,6 +5,7 @@
 #include <QDebug>
 #include "locationmaker.h"
 #include "sensormaker.h"
+#include <QDateTime>
 
 HomeCapt::HomeCapt(QWidget *parent) :
   QMainWindow(parent),
@@ -28,7 +29,12 @@ HomeCapt::HomeCapt(QWidget *parent) :
   connect(&_api,SIGNAL(hasSensorTypes()),&_api,SLOT(fetchLocations()));
   connect(&_api,SIGNAL(hasLocations()),&_api,SLOT(fetchSensors()));
 
-  connect(ui->LocSensView, SIGNAL(clicked(QModelIndex)),this,SLOT(plotIndex(QModelIndex)));
+  connect(ui->LocSensView, SIGNAL(clicked(QModelIndex)),this,SLOT(fetchIndex(QModelIndex)));
+  connect(&_api,SIGNAL(hasData()),this,SLOT(plot()));
+
+  ui->plot->setInteractions(QCP::Interaction::iRangeDrag|QCP::Interaction::iRangeZoom);
+  ui->plot->axisRect()->setRangeDrag(Qt::Horizontal);
+  ui->plot->axisRect()->setRangeZoom(Qt::Horizontal);
 }
 
 HomeCapt::~HomeCapt()
@@ -85,7 +91,6 @@ void HomeCapt::manageSignal(const QString msg)
 {
   QMetaMethod metaMethod = sender()->metaObject()->method(senderSignalIndex());
   auto signal = metaMethod.name();
-  qDebug() << "signal" << signal;
   if ( signal == "errorJson" )
   {
     ui->statusBar->showMessage(tr("Error in reading JSON: ")+msg);
@@ -132,15 +137,37 @@ void HomeCapt::buildTree()
     ui->LocSensView->resizeColumnToContents(c);
 }
 
-void HomeCapt::plotIndex(QModelIndex index)
+void HomeCapt::fetchIndex(QModelIndex index)
 {
   auto indexes = ui->LocSensView->selectionModel()->selectedIndexes();
   if (_locSensModel->itemFromIndex(index)->parent() != nullptr)
   {
-    int type = _locSensModel->itemFromIndex(*(indexes.begin()+3))->data(Qt::UserRole).toInt();
-    int id = _locSensModel->itemFromIndex(*(indexes.begin()+1))->text().toInt();
-    //ui->temporary->setText(QString::number(id)+" "+QString::number(type) );
+    _currentType = _locSensModel->itemFromIndex(*(indexes.begin()+3))->data(Qt::UserRole).toInt();
+    _currentSensor = _locSensModel->itemFromIndex(*(indexes.begin()+1))->text().toInt();
+    _api.fetchData(_currentSensor);
   }
+}
+
+void HomeCapt::plot()
+{
+  QVector<HomeCaptAPI::Data> data = _api.data();
+  int ndata = data.size();
+  QVector<double> x(ndata);
+  QVector<double> y(ndata);
+  for (int i = 0;i<ndata;++i)
+  {
+    QDateTime dt = QDateTime::fromString(data[i].date,"yyyy-MM-dd HH:mm:ss");
+    x[i]= dt.toSecsSinceEpoch();
+    y[i]=data[i].value;
+  }
+  ui->plot->clearPlottables();
+  QSharedPointer<QCPAxisTickerDateTime> dateTimeTicker(new QCPAxisTickerDateTime);
+  ui->plot->xAxis->setTicker(dateTimeTicker);
+  ui->plot->yAxis->setLabel(_api.sensorTypes()[_currentType].unit);
+  auto graph = ui->plot->addGraph();
+  graph->addData(x,y,true);
+  ui->plot->rescaleAxes(true);
+  ui->plot->replot();
 }
 
 void HomeCapt::on_host_editingFinished()
