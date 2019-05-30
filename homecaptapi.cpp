@@ -4,13 +4,15 @@
 #include <QJsonValue>
 #include <QDebug>
 #include <algorithm>
+#include <QUrlQuery>
 
 QJsonArray HomeCaptAPI::getResult(const QByteArray reply)
 {
   QString data = reply;
+  qDebug() << data;
   QJsonObject check = QJsonDocument::fromJson(data.toUtf8()).object();
   if ( check.isEmpty() || check["return_code"].toInt() != 0 ) {
-    emit(errorJson(check["msg"].toString()));
+    emit(errorJson(check["message"].toString()));
     return QJsonArray();
   }
   else
@@ -20,6 +22,7 @@ QJsonArray HomeCaptAPI::getResult(const QByteArray reply)
 }
 
 HomeCaptAPI::HomeCaptAPI(QObject *parent) : QObject(parent),
+  _ready(false),
   _url(),
   _user(),
   _password(),
@@ -54,6 +57,7 @@ void HomeCaptAPI::auth(const QString &user, const QString &password)
   QByteArray data = concatenated.toUtf8().toBase64();
   QString headerData = "Basic " + data;
   _request.setRawHeader("Authorization", headerData.toUtf8());
+  _request.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
   _request.setUrl(QUrl(_url));
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinishedAuth(QNetworkReply*)));
   _manager.get(_request);
@@ -62,6 +66,11 @@ void HomeCaptAPI::auth(const QString &user, const QString &password)
 QString HomeCaptAPI::host()
 {
   return _url;
+}
+
+bool HomeCaptAPI::isReady()
+{
+  return _ready;
 }
 
 QNetworkReply::NetworkError HomeCaptAPI::getError()
@@ -76,7 +85,18 @@ const QList<HomeCaptAPI::Location> &HomeCaptAPI::locations()
 
 const QList<HomeCaptAPI::Sensor> &HomeCaptAPI::sensors()
 {
-    return _sensors;
+  return _sensors;
+}
+
+void HomeCaptAPI::createLocation(const QString &name)
+{
+  _request.setUrl(QUrl(_url+"/create_location.php"));
+  QUrlQuery query;
+  query.addQueryItem("location_name",name);
+  qDebug() << query.query().toUtf8();
+  _manager.post(_request,query.query().toUtf8());
+  QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(checkLocationCreated(QNetworkReply*)));
+
 }
 
 void HomeCaptAPI::fetchSensors()
@@ -95,14 +115,11 @@ void HomeCaptAPI::fetchLocations()
 
 void HomeCaptAPI::replyFinishedConnect(QNetworkReply *rep)
 {
-  //qDebug() << "Error" <<  rep->error();
   if (rep->error()==QNetworkReply::AuthenticationRequiredError)
   {
-    //qDebug() << "Need auth" << QString(rep->readAll());
     QObject::disconnect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinishedConnect(QNetworkReply*)));
     if ( rep->sslConfiguration().protocol() == QSsl::SecureProtocols )
     {
-      //qDebug() << "SSL OK";
       _url.replace("http://","https://");
       _request.setUrl(QUrl(_url));
       emit(isConnected());
@@ -120,22 +137,18 @@ void HomeCaptAPI::replyFinishedConnect(QNetworkReply *rep)
 
 void HomeCaptAPI::replyFinishedAuth(QNetworkReply *rep)
 {
-  //qDebug() << rep->isFinished();
-  //qDebug() << QString(rep->readAll());
   if (rep->error()==QNetworkReply::NoError)
   {
     QObject::disconnect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinishedAuth(QNetworkReply*)));
-    //qDebug() << "efore";
-    //qDebug() << QString(rep->readAll());
     getResult(rep->readAll());
     emit(isAuthenticated());
+    _ready = true;
   }
   else
   {
     _error = rep->error();
     emit(errorAuth());
   }
-
 }
 
 void HomeCaptAPI::buildLocations(QNetworkReply *rep)
@@ -185,4 +198,35 @@ void HomeCaptAPI::buildSensors(QNetworkReply *rep)
   {
       emit(errorReply(rep->errorString()));
   }
+}
+
+void HomeCaptAPI::checkLocationCreated(QNetworkReply *rep)
+{
+  if (rep->error()==QNetworkReply::NoError)
+  {
+    QObject::disconnect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(checkLocationCreated(QNetworkReply*)));
+    QJsonArray result = getResult(rep->readAll());
+    if (result.isEmpty())
+    {
+      emit(errorJson(tr("Result is empty!")));
+      return;
+    }
+    else
+    {
+      QJsonObject location = result.begin()->toObject();
+      _locations << Location({ location["id"].toString().toInt(),
+                               location["owner"].toString(),
+                               location["location"].toString()
+                             });
+    std::sort(_locations.begin(),_locations.end(),
+              [](const Location &l1, const Location &l2){return l1.name.toLower()<l2.name.toLower();});
+
+      emit(locationCreated());
+    }
+  }
+  else
+  {
+    emit(errorReply(rep->errorString()));
+  }
+
 }

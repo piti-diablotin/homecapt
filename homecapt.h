@@ -6,18 +6,18 @@
 #include <QStandardItemModel>
 
 namespace Ui {
-class HomeCapt;
+  class HomeCapt;
 }
 
 class HomeCapt : public QMainWindow
 {
     Q_OBJECT
 
-public:
+  public:
     explicit HomeCapt(QWidget *parent = 0);
     ~HomeCapt();
 
-private slots:
+  private slots:
     void manageSignal();
     void manageSignal(const QString msg);
     void buildTree();
@@ -26,7 +26,9 @@ private slots:
 
     void on_connect_clicked(bool checked);
 
-private:
+    void on_addLocation_clicked();
+
+  private:
     Ui::HomeCapt *ui;
     HomeCaptAPI _api;
     QStandardItemModel *_locSensModel;

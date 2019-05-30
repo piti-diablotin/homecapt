@@ -3,12 +3,13 @@
 #include <QMetaObject>
 #include <QMetaMethod>
 #include <QDebug>
+#include "locationmaker.h"
 
 HomeCapt::HomeCapt(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::HomeCapt),
-    _api(this),
-    _locSensModel(new QStandardItemModel(this))
+  QMainWindow(parent),
+  ui(new Ui::HomeCapt),
+  _api(this),
+  _locSensModel(new QStandardItemModel(this))
 {
   ui->setupUi(this);
   connect(&_api,SIGNAL(errorConnect()),this,SLOT(manageSignal()));
@@ -55,6 +56,8 @@ void HomeCapt::manageSignal()
   else if ( signal == "errorAuth" )
   {
     qDebug() << "PB auth !";
+    ui->connect->setChecked(false);
+    ui->connect->setText(tr("Connect"));
   }
   else if ( signal == "errorJson" )
   {
@@ -93,6 +96,7 @@ void HomeCapt::buildTree()
 {
   auto locations = _api.locations();
   auto sensors = _api.sensors();
+  _locSensModel->clear();
   auto root = _locSensModel->invisibleRootItem();
   auto makeRow = [](QString name, int id, QString owner, int type, QString comment)
   {
@@ -139,6 +143,16 @@ void HomeCapt::on_connect_clicked(bool checked)
     ui->host->setReadOnly(false);
     ui->user->setEnabled(true);
     ui->password->setEnabled(true);
+    ui->connect->setText(tr("Connect"));
     _locSensModel->clear();
   }
+}
+
+void HomeCapt::on_addLocation_clicked()
+{
+    LocationMaker *maker = new LocationMaker(&_api,this);
+    if (maker->exec() == QDialog::Accepted)
+    {
+      this->buildTree();
+    }
 }
