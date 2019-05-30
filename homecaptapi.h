@@ -8,11 +8,19 @@
 #include <QString>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QMap>
 
 class HomeCaptAPI : public QObject
 {
     Q_OBJECT
   public:
+
+    typedef struct {
+        int id;
+        QString quantity;
+        QString unit;
+    } SensorType;
+
     typedef struct {
         int id;
         int type;
@@ -39,6 +47,7 @@ class HomeCaptAPI : public QObject
     QNetworkReply::NetworkError _error;
     QList<Sensor> _sensors;
     QList<Location> _locations;
+    QMap<int,SensorType> _sensorTypes;
 
     QJsonArray getResult(const QByteArray reply);
 
@@ -52,6 +61,7 @@ class HomeCaptAPI : public QObject
     QNetworkReply::NetworkError getError();
     const QList<Location> &locations();
     const QList<Sensor> &sensors();
+    const QMap<int,SensorType> &sensorTypes();
     void createLocation(const QString &name);
 
   signals:
@@ -62,18 +72,21 @@ class HomeCaptAPI : public QObject
     void isConnected();
     void isConnectedNotSafe();
     void isAuthenticated();
+    void hasSensorTypes();
     void hasLocations();
     void hasSensors();
     void locationCreated();
 
 
   public slots:
+    void fetchSensorTypes();
     void fetchSensors();
     void fetchLocations();
 
   protected slots:
     void replyFinishedConnect(QNetworkReply *rep);
     void replyFinishedAuth(QNetworkReply *rep);
+    void buildSensorTypes(QNetworkReply *rep);
     void buildLocations(QNetworkReply *rep);
     void buildSensors(QNetworkReply *rep);
     void checkLocationCreated(QNetworkReply *rep);

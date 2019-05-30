@@ -19,8 +19,13 @@ HomeCapt::HomeCapt(QWidget *parent) :
   connect(&_api,SIGNAL(isConnected()),this,SLOT(manageSignal()));
   connect(&_api,SIGNAL(isConnectedNotSafe()),this,SLOT(manageSignal()));
   connect(&_api,SIGNAL(isAuthenticated()),this,SLOT(manageSignal()));
+  connect(&_api,SIGNAL(hasSensorTypes()),this,SLOT(manageSignal()));
   connect(&_api,SIGNAL(hasLocations()),this,SLOT(manageSignal()));
   connect(&_api,SIGNAL(hasSensors()),this,SLOT(manageSignal()));
+
+  connect(&_api,SIGNAL(isAuthenticated()),&_api,SLOT(fetchSensorTypes()));
+  connect(&_api,SIGNAL(hasSensorTypes()),&_api,SLOT(fetchLocations()));
+  connect(&_api,SIGNAL(hasLocations()),&_api,SLOT(fetchSensors()));
 }
 
 HomeCapt::~HomeCapt()
@@ -51,7 +56,6 @@ void HomeCapt::manageSignal()
     qDebug() << "OK !";
     ui->user->setDisabled(true);
     ui->password->setDisabled(true);
-    _api.fetchLocations();
   }
   else if ( signal == "errorAuth" )
   {
@@ -65,7 +69,6 @@ void HomeCapt::manageSignal()
   }
   else if ( signal == "hasLocations" )
   {
-    _api.fetchSensors();
     ui->addLocation->setEnabled(true);
   }
   else if ( signal == "hasSensors" )
@@ -98,21 +101,21 @@ void HomeCapt::buildTree()
   auto sensors = _api.sensors();
   _locSensModel->clear();
   auto root = _locSensModel->invisibleRootItem();
-  auto makeRow = [](QString name, int id, QString owner, int type, QString comment)
+  auto makeRow = [](QString name, int id, QString owner, QString type, QString comment)
   {
     QList<QStandardItem*> list;
     list << new QStandardItem(name) << new QStandardItem(QString::number(id))
-         << new QStandardItem(owner) << new QStandardItem(type>0?QString::number(type):"")
+         << new QStandardItem(owner) << new QStandardItem(type)
          << new QStandardItem(comment);
     return list;
   };
   for (auto l = locations.begin(); l != locations.end(); ++l)
   {
-    QList<QStandardItem*> loc = makeRow(l->name,l->id,l->owner,-1,"");
+    QList<QStandardItem*> loc = makeRow(l->name,l->id,l->owner,"","");
     for (auto s = sensors.begin(); s != sensors.end(); ++s)
     {
       if ( s->location == l->id )
-        loc.first()->appendRow(makeRow(s->name,s->id,s->owner,s->type,s->comment));
+        loc.first()->appendRow(makeRow(s->name,s->id,s->owner,_api.sensorTypes()[s->type].quantity,s->comment));
     }
     root->appendRow(loc);
   }

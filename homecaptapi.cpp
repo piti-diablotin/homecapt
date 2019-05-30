@@ -30,7 +30,8 @@ HomeCaptAPI::HomeCaptAPI(QObject *parent) : QObject(parent),
   _manager(this),
   _error(QNetworkReply::NoError),
   _sensors(),
-  _locations()
+  _locations(),
+  _sensorTypes()
 {
 
 }
@@ -88,6 +89,11 @@ const QList<HomeCaptAPI::Sensor> &HomeCaptAPI::sensors()
   return _sensors;
 }
 
+const QMap<int,HomeCaptAPI::SensorType> &HomeCaptAPI::sensorTypes()
+{
+  return _sensorTypes;
+}
+
 void HomeCaptAPI::createLocation(const QString &name)
 {
   _request.setUrl(QUrl(_url+"/create_location.php"));
@@ -97,6 +103,13 @@ void HomeCaptAPI::createLocation(const QString &name)
   _manager.post(_request,query.query().toUtf8());
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(checkLocationCreated(QNetworkReply*)));
 
+}
+
+void HomeCaptAPI::fetchSensorTypes()
+{
+  _request.setUrl(QUrl(_url+"/get_sensortypes.php"));
+  _manager.get(_request);
+  QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildSensorTypes(QNetworkReply*)));
 }
 
 void HomeCaptAPI::fetchSensors()
@@ -149,6 +162,29 @@ void HomeCaptAPI::replyFinishedAuth(QNetworkReply *rep)
     _error = rep->error();
     emit(errorAuth());
   }
+}
+
+void HomeCaptAPI::buildSensorTypes(QNetworkReply *rep)
+{
+  if (rep->error()==QNetworkReply::NoError)
+  {
+    QObject::disconnect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildSensorTypes(QNetworkReply*)));
+    QJsonArray result = getResult(rep->readAll());
+    for ( auto t = result.begin(); t != result.end(); ++t){
+        QJsonObject type = t->toObject();
+        _sensorTypes[type["id"].toString().toInt()] = SensorType({
+                             type["id"].toString().toInt(),
+                             type["quantity"].toString(),
+                             type["unit"].toString()
+                           });
+    }
+    emit(hasSensorTypes());
+  }
+  else
+  {
+      emit(errorReply(rep->errorString()));
+  }
+
 }
 
 void HomeCaptAPI::buildLocations(QNetworkReply *rep)
