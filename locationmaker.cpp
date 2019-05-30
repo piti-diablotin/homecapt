@@ -37,9 +37,3 @@ void LocationMaker::displayError(QString msg)
 {
   ui->info->setText(msg);
 }
-
-void LocationMaker::accept()
-{
-  QDialog::done(QDialog::Accepted);
-  this->close();
-}

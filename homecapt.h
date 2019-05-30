@@ -21,12 +21,14 @@ class HomeCapt : public QMainWindow
     void manageSignal();
     void manageSignal(const QString msg);
     void buildTree();
+    void plotIndex(QModelIndex index);
     void on_host_editingFinished();
-
 
     void on_connect_clicked(bool checked);
 
     void on_addLocation_clicked();
+
+    void on_addSensor_clicked();
 
   private:
     Ui::HomeCapt *ui;

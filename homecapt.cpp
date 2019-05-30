@@ -4,6 +4,7 @@
 #include <QMetaMethod>
 #include <QDebug>
 #include "locationmaker.h"
+#include "sensormaker.h"
 
 HomeCapt::HomeCapt(QWidget *parent) :
   QMainWindow(parent),
@@ -26,6 +27,8 @@ HomeCapt::HomeCapt(QWidget *parent) :
   connect(&_api,SIGNAL(isAuthenticated()),&_api,SLOT(fetchSensorTypes()));
   connect(&_api,SIGNAL(hasSensorTypes()),&_api,SLOT(fetchLocations()));
   connect(&_api,SIGNAL(hasLocations()),&_api,SLOT(fetchSensors()));
+
+  connect(ui->LocSensView, SIGNAL(clicked(QModelIndex)),this,SLOT(plotIndex(QModelIndex)));
 }
 
 HomeCapt::~HomeCapt()
@@ -101,21 +104,23 @@ void HomeCapt::buildTree()
   auto sensors = _api.sensors();
   _locSensModel->clear();
   auto root = _locSensModel->invisibleRootItem();
-  auto makeRow = [](QString name, int id, QString owner, QString type, QString comment)
+  auto makeRow = [this](QString name, int id, QString owner, int type, QString comment)
   {
     QList<QStandardItem*> list;
+    QStandardItem *itemType = new QStandardItem(type>0?_api.sensorTypes()[type].quantity:"");
+    itemType->setData(type,Qt::UserRole);
     list << new QStandardItem(name) << new QStandardItem(QString::number(id))
-         << new QStandardItem(owner) << new QStandardItem(type)
+         << new QStandardItem(owner) << itemType
          << new QStandardItem(comment);
     return list;
   };
   for (auto l = locations.begin(); l != locations.end(); ++l)
   {
-    QList<QStandardItem*> loc = makeRow(l->name,l->id,l->owner,"","");
+    QList<QStandardItem*> loc = makeRow(l->name,l->id,l->owner,-1,"");
     for (auto s = sensors.begin(); s != sensors.end(); ++s)
     {
       if ( s->location == l->id )
-        loc.first()->appendRow(makeRow(s->name,s->id,s->owner,_api.sensorTypes()[s->type].quantity,s->comment));
+        loc.first()->appendRow(makeRow(s->name,s->id,s->owner,s->type,s->comment));
     }
     root->appendRow(loc);
   }
@@ -126,6 +131,17 @@ void HomeCapt::buildTree()
   ui->LocSensView->expandAll();
   for (int c = 0 ; c < _locSensModel->columnCount() ; ++c)
     ui->LocSensView->resizeColumnToContents(c);
+}
+
+void HomeCapt::plotIndex(QModelIndex index)
+{
+  auto indexes = ui->LocSensView->selectionModel()->selectedIndexes();
+  if (_locSensModel->itemFromIndex(index)->parent() != nullptr)
+  {
+    int type = _locSensModel->itemFromIndex(*(indexes.begin()+3))->data(Qt::UserRole).toInt();
+    int id = _locSensModel->itemFromIndex(*(indexes.begin()+1))->text().toInt();
+    ui->temporary->setText(QString::number(id)+" "+QString::number(type) );
+  }
 }
 
 void HomeCapt::on_host_editingFinished()
@@ -154,6 +170,15 @@ void HomeCapt::on_connect_clicked(bool checked)
 void HomeCapt::on_addLocation_clicked()
 {
     LocationMaker *maker = new LocationMaker(&_api,this);
+    if (maker->exec() == QDialog::Accepted)
+    {
+      this->buildTree();
+    }
+}
+
+void HomeCapt::on_addSensor_clicked()
+{
+    SensorMaker *maker = new SensorMaker(&_api,this);
     if (maker->exec() == QDialog::Accepted)
     {
       this->buildTree();

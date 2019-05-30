@@ -63,6 +63,7 @@ class HomeCaptAPI : public QObject
     const QList<Sensor> &sensors();
     const QMap<int,SensorType> &sensorTypes();
     void createLocation(const QString &name);
+    void createSensor(const QString &name, const int location, const int type, const QString &comment);
 
   signals:
     void errorConnect();
@@ -76,6 +77,7 @@ class HomeCaptAPI : public QObject
     void hasLocations();
     void hasSensors();
     void locationCreated();
+    void sensorCreated();
 
 
   public slots:
@@ -90,6 +92,7 @@ class HomeCaptAPI : public QObject
     void buildLocations(QNetworkReply *rep);
     void buildSensors(QNetworkReply *rep);
     void checkLocationCreated(QNetworkReply *rep);
+    void checkSensorCreated(QNetworkReply *rep);
 };
 
 #endif // HOMECAPTAPI_H

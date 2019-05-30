@@ -27,13 +27,16 @@ SOURCES += \
         main.cpp \
         homecapt.cpp \
     homecaptapi.cpp \
-    locationmaker.cpp
+    locationmaker.cpp \
+    sensormaker.cpp
 
 HEADERS += \
         homecapt.h \
     homecaptapi.h \
-    locationmaker.h
+    locationmaker.h \
+    sensormaker.h
 
 FORMS += \
         homecapt.ui \
-    locationmaker.ui
+    locationmaker.ui \
+    sensormaker.ui

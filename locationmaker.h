@@ -19,7 +19,6 @@ class LocationMaker : public QDialog
   private slots:
     void on_buttonBox_accepted();
     void displayError(QString msg);
-    void accept();
 
   private:
     Ui::LocationMaker *ui;
