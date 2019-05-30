@@ -2,6 +2,8 @@
 #define HOMECAPT_H
 
 #include <QMainWindow>
+#include "homecaptapi.h"
+#include <QStandardItemModel>
 
 namespace Ui {
 class HomeCapt;
@@ -15,8 +17,19 @@ public:
     explicit HomeCapt(QWidget *parent = 0);
     ~HomeCapt();
 
+private slots:
+    void manageSignal();
+    void manageSignal(const QString msg);
+    void buildTree();
+    void on_host_editingFinished();
+
+
+    void on_connect_clicked(bool checked);
+
 private:
     Ui::HomeCapt *ui;
+    HomeCaptAPI _api;
+    QStandardItemModel *_locSensModel;
 };
 
 #endif // HOMECAPT_H

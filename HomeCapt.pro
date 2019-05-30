@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -26,11 +26,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
         main.cpp \
         homecapt.cpp \
-    homecaptapi.cpp
+    homecaptapi.cpp \
+    locationmaker.cpp
 
 HEADERS += \
         homecapt.h \
-    homecaptapi.h
+    homecaptapi.h \
+    locationmaker.h
 
 FORMS += \
-        homecapt.ui
+        homecapt.ui \
+    locationmaker.ui
