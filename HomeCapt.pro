@@ -6,7 +6,7 @@
 
 QT       += core gui network
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = HomeCapt
 TEMPLATE = app
@@ -28,13 +28,15 @@ SOURCES += \
         homecapt.cpp \
     homecaptapi.cpp \
     locationmaker.cpp \
-    sensormaker.cpp
+    sensormaker.cpp \
+    qcustomplot.cpp
 
 HEADERS += \
         homecapt.h \
     homecaptapi.h \
     locationmaker.h \
-    sensormaker.h
+    sensormaker.h \
+    qcustomplot.h
 
 FORMS += \
         homecapt.ui \

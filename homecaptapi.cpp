@@ -9,7 +9,6 @@
 QJsonArray HomeCaptAPI::getResult(const QByteArray reply)
 {
   QString data = reply;
-  qDebug() << data;
   QJsonObject check = QJsonDocument::fromJson(data.toUtf8()).object();
   if ( check.isEmpty() || check["return_code"].toInt() != 0 ) {
     emit(errorJson(check["message"].toString()));

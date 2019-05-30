@@ -40,10 +40,9 @@ void HomeCapt::manageSignal()
 {
   QMetaMethod metaMethod = sender()->metaObject()->method(senderSignalIndex());
   auto signal = metaMethod.name();
-  qDebug() << "signal" << signal;
   if ( signal == "errorConnect" )
   {
-    qDebug() << "Error connect!";
+    ui->statusBar->showMessage(tr("Cannot reach server"));
   }
   else if ( signal == "isConnected" )
   {
@@ -53,22 +52,23 @@ void HomeCapt::manageSignal()
     ui->host->setReadOnly(true);
     ui->connect->setEnabled(true);
     ui->user->setFocus();
+    ui->statusBar->showMessage(tr("Server reached"));
   }
   else if ( signal == "isAuthenticated")
   {
-    qDebug() << "OK !";
     ui->user->setDisabled(true);
     ui->password->setDisabled(true);
+    ui->statusBar->showMessage(tr("Authentication succeeded"));
   }
   else if ( signal == "errorAuth" )
   {
-    qDebug() << "PB auth !";
     ui->connect->setChecked(false);
     ui->connect->setText(tr("Connect"));
+    ui->statusBar->showMessage(tr("Authentication failed"));
   }
   else if ( signal == "errorJson" )
   {
-    qDebug() << " Pb with json";
+    ui->statusBar->showMessage(tr("Error in reading JSON"));
   }
   else if ( signal == "hasLocations" )
   {
@@ -76,7 +76,6 @@ void HomeCapt::manageSignal()
   }
   else if ( signal == "hasSensors" )
   {
-    qDebug() << "Ready";
     this->buildTree();
     ui->addSensor->setEnabled(true);
   }
@@ -89,11 +88,11 @@ void HomeCapt::manageSignal(const QString msg)
   qDebug() << "signal" << signal;
   if ( signal == "errorJson" )
   {
-    qDebug() << msg;
+    ui->statusBar->showMessage(tr("Error in reading JSON: ")+msg);
   }
   else if ( signal == "errorReply" )
   {
-    qDebug() << msg;
+    ui->statusBar->showMessage(tr("Error in the reply: ")+msg);
   }
 
 }
@@ -140,14 +139,17 @@ void HomeCapt::plotIndex(QModelIndex index)
   {
     int type = _locSensModel->itemFromIndex(*(indexes.begin()+3))->data(Qt::UserRole).toInt();
     int id = _locSensModel->itemFromIndex(*(indexes.begin()+1))->text().toInt();
-    ui->temporary->setText(QString::number(id)+" "+QString::number(type) );
+    //ui->temporary->setText(QString::number(id)+" "+QString::number(type) );
   }
 }
 
 void HomeCapt::on_host_editingFinished()
 {
   if ( !ui->host->text().isEmpty() )
+  {
     _api.connect(ui->host->text());
+    ui->statusBar->showMessage(tr("Trying to connect"));
+  }
 }
 
 void HomeCapt::on_connect_clicked(bool checked)
@@ -164,6 +166,7 @@ void HomeCapt::on_connect_clicked(bool checked)
     ui->password->setEnabled(true);
     ui->connect->setText(tr("Connect"));
     _locSensModel->clear();
+    ui->statusBar->showMessage(tr("Trying to authenticate"));
   }
 }
 
@@ -172,6 +175,7 @@ void HomeCapt::on_addLocation_clicked()
     LocationMaker *maker = new LocationMaker(&_api,this);
     if (maker->exec() == QDialog::Accepted)
     {
+      ui->statusBar->showMessage(tr("Location added"));
       this->buildTree();
     }
 }
@@ -181,6 +185,7 @@ void HomeCapt::on_addSensor_clicked()
     SensorMaker *maker = new SensorMaker(&_api,this);
     if (maker->exec() == QDialog::Accepted)
     {
+      ui->statusBar->showMessage(tr("Sensor added"));
       this->buildTree();
     }
 }
