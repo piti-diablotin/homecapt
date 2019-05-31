@@ -11,7 +11,11 @@ HomeCapt::HomeCapt(QWidget *parent) :
   QMainWindow(parent),
   ui(new Ui::HomeCapt),
   _api(this),
-  _locSensModel(new QStandardItemModel(this))
+  _locSensModel(new QStandardItemModel(this)),
+  _currentType(0),
+  _currentSensor(0),
+  _currentDuration(-1),
+  _currentDurationButton(nullptr)
 {
   ui->setupUi(this);
   connect(&_api,SIGNAL(errorConnect()),this,SLOT(manageSignal()));
@@ -35,6 +39,10 @@ HomeCapt::HomeCapt(QWidget *parent) :
   ui->plot->setInteractions(QCP::Interaction::iRangeDrag|QCP::Interaction::iRangeZoom);
   ui->plot->axisRect()->setRangeDrag(Qt::Horizontal);
   ui->plot->axisRect()->setRangeZoom(Qt::Horizontal);
+
+  ui->day1->setChecked(true);
+  _currentDurationButton = ui->day1;
+  _currentDuration = 1;
 }
 
 HomeCapt::~HomeCapt()
@@ -150,16 +158,9 @@ void HomeCapt::fetchIndex(QModelIndex index)
 
 void HomeCapt::plot()
 {
-  QVector<HomeCaptAPI::Data> data = _api.data();
-  int ndata = data.size();
-  QVector<double> x(ndata);
-  QVector<double> y(ndata);
-  for (int i = 0;i<ndata;++i)
-  {
-    QDateTime dt = QDateTime::fromString(data[i].date,"yyyy-MM-dd HH:mm:ss");
-    x[i]= dt.toSecsSinceEpoch();
-    y[i]=data[i].value;
-  }
+  QVector<double> x;
+  QVector<double> y;
+  this->processData(x,y);
   ui->plot->clearPlottables();
   QSharedPointer<QCPAxisTickerDateTime> dateTimeTicker(new QCPAxisTickerDateTime);
   ui->plot->xAxis->setTicker(dateTimeTicker);
@@ -215,4 +216,183 @@ void HomeCapt::on_addSensor_clicked()
       ui->statusBar->showMessage(tr("Sensor added"));
       this->buildTree();
     }
+}
+
+void HomeCapt::processData(QVector<double> &time, QVector<double> &value)
+{
+  const QVector<HomeCaptAPI::Data> &data = _api.data();
+  int ndata = data.size();
+  QVector<double> tempTime;
+  tempTime.reserve(ndata);
+  const int nmax=24*60;
+  if (_currentDurationButton != ui->max)
+  {
+    QDateTime limit = QDateTime::currentDateTime().addDays(-_currentDuration);
+    //QDateTime limit = QDateTime::fromString("2019-05-30 18:44:30","yyyy-MM-dd HH:mm:ss").addDays(-_currentDuration);
+    for( auto dt = data.rbegin(); dt != data.rend(); ++dt)
+    {
+      QDateTime info = QDateTime::fromString(dt->date,"yyyy-MM-dd HH:mm:ss");
+      tempTime.push_back(info.toSecsSinceEpoch());
+      if ( info < limit )
+        break;
+    }
+    tempTime.pop_back();
+    tempTime.squeeze();
+  }
+  else
+  {
+    for( auto dt = data.rbegin(); dt != data.rend(); ++dt)
+    {
+      QDateTime info = QDateTime::fromString(dt->date,"yyyy-MM-dd HH:mm:ss");
+      tempTime.push_back(info.toSecsSinceEpoch());
+    }
+  }
+
+  int startingPoint = ndata-tempTime.size();
+  int npoints = tempTime.size();
+
+  if ( tempTime.size() > nmax )
+  {
+    int groupBy = npoints/nmax;
+    int ngrouped = npoints/groupBy;
+    int residu = npoints-ngrouped*groupBy;
+    time.resize(ngrouped+residu);
+    value.resize(ngrouped+residu);
+    for (int g=0; g < ngrouped; ++g)
+    {
+      double accumTime = 0;
+      double accumValue = 0;
+      for (int subg=0; subg<groupBy; ++subg)
+      {
+        const int id = g*groupBy+subg;
+        accumTime+=tempTime[npoints-1-id];
+        accumValue+=data[startingPoint+id].value;
+      }
+      time[g] = accumTime/groupBy;
+      value[g] = accumValue/groupBy;
+    }
+    for (int g=ngrouped*groupBy,i=ngrouped; g < npoints; ++g,++i)
+    {
+      time[i]= tempTime[npoints-1-g];
+      value[i]=data[startingPoint+g].value;
+    }
+  }
+  else
+  {
+    time.resize(npoints);
+    value.resize(npoints);
+    for (int i = startingPoint,j=0; i<ndata; ++i,++j)
+    {
+      time[j]= tempTime[npoints-1-j];
+      value[j]=data[i].value;
+    }
+  }
+}
+
+void HomeCapt::on_day1_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 1;
+    _currentDurationButton = ui->day1;
+    this->plot();
+  }
+  else
+    ui->day1->setChecked(true);
+}
+
+void HomeCapt::on_week1_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 7;
+    _currentDurationButton = ui->week1;
+    this->plot();
+  }
+  else
+    ui->week1->setChecked(true);
+}
+
+void HomeCapt::on_month1_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 31;
+    _currentDurationButton = ui->month1;
+    this->plot();
+  }
+  else
+    ui->month1->setChecked(true);
+}
+
+void HomeCapt::on_month3_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 3*31;
+    _currentDurationButton = ui->month3;
+    this->plot();
+  }
+  else
+    ui->month3->setChecked(true);
+}
+
+void HomeCapt::on_month6_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 6*31;
+    _currentDurationButton = ui->month6;
+    this->plot();
+  }
+  else
+    ui->month6->setChecked(true);
+
+}
+
+void HomeCapt::on_year1_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 365;
+    _currentDurationButton = ui->year1;
+    this->plot();
+  }
+  else
+    ui->year1->setChecked(true);
+
+}
+
+void HomeCapt::on_year5_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = 5*365;
+    _currentDurationButton = ui->year5;
+    this->plot();
+  }
+  else
+    ui->year5->setChecked(true);
+
+}
+
+void HomeCapt::on_max_clicked(bool checked)
+{
+  if (checked)
+  {
+    _currentDurationButton->setChecked(false);
+    _currentDuration = -1;
+    _currentDurationButton = ui->max;
+    this->plot();
+  }
+  else
+    ui->month1->setChecked(true);
+
 }

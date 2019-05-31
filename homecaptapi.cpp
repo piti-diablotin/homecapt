@@ -332,6 +332,7 @@ void HomeCaptAPI::buildData(QNetworkReply *rep)
     QObject::disconnect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildData(QNetworkReply*)));
     QJsonArray result = getResult(rep->readAll());
     _data.resize(result.size());
+    _data.squeeze();
     int i = 0;
     for ( auto dat = result.begin(); dat != result.end(); ++dat ){
       QJsonObject data = dat->toObject();

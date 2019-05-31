@@ -36,6 +36,11 @@ void SensorMaker::on_buttonBox_accepted()
     ui->info->setText(tr("Please provide a name"));
     return;
   }
+  else if (ui->location->count() == 0)
+  {
+    ui->info->setText(tr("First create a location"));
+    return;
+  }
   if (_api != 0 && _api->isReady())
   {
     _api->createSensor(ui->name->text(),ui->location->currentData().toInt(),ui->type->currentData().toInt(),ui->comment->text());
