@@ -38,7 +38,7 @@ class HomeCaptAPI : public QObject
     } Location;
 
     typedef struct {
-        QString date;
+        int date;
         float value;
     } Data;
 

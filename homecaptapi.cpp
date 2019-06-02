@@ -146,8 +146,8 @@ void HomeCaptAPI::fetchData(int sensor)
   QUrlQuery query;
   query.addQueryItem("sensor",QString::number(sensor));
   _request.setUrl(QUrl(_url+"/get_data.php?"+query.query()));
-  _manager.get(_request);
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildData(QNetworkReply*)));
+  _manager.get(_request);
 }
 
 void HomeCaptAPI::replyFinishedConnect(QNetworkReply *rep)
@@ -336,7 +336,7 @@ void HomeCaptAPI::buildData(QNetworkReply *rep)
     int i = 0;
     for ( auto dat = result.begin(); dat != result.end(); ++dat ){
       QJsonObject data = dat->toObject();
-      _data[i++] = Data({ data["date"].toString(),
+      _data[i++] = Data({ data["date"].toString().toInt(),
                          data["value"].toString().toFloat()
                        });
     }
@@ -344,6 +344,7 @@ void HomeCaptAPI::buildData(QNetworkReply *rep)
   }
   else
   {
+    _data.clear();
     emit(errorReply(rep->errorString()));
   }
 }

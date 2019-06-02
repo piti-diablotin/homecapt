@@ -222,36 +222,50 @@ void HomeCapt::processData(QVector<double> &time, QVector<double> &value)
 {
   const QVector<HomeCaptAPI::Data> &data = _api.data();
   int ndata = data.size();
-  QVector<double> tempTime;
-  tempTime.reserve(ndata);
+  if (ndata==0)
+  {
+    time.resize(0);
+    value.resize(0);
+    return;
+  }
+  //QVector<double> tempTime;
+  //tempTime.reserve(ndata);
   const int nmax=24*60;
+  int npoints = 0;
   if (_currentDurationButton != ui->max)
   {
-    QDateTime limit = QDateTime::currentDateTime().addDays(-_currentDuration);
+    //QDateTime limit = QDateTime::currentDateTime().addDays(-_currentDuration);
+    int limit = QDateTime::currentDateTime().addDays(-_currentDuration).toSecsSinceEpoch();
     //QDateTime limit = QDateTime::fromString("2019-05-30 18:44:30","yyyy-MM-dd HH:mm:ss").addDays(-_currentDuration);
     for( auto dt = data.rbegin(); dt != data.rend(); ++dt)
     {
-      QDateTime info = QDateTime::fromString(dt->date,"yyyy-MM-dd HH:mm:ss");
-      tempTime.push_back(info.toSecsSinceEpoch());
-      if ( info < limit )
+      //QDateTime info = QDateTime::fromString(dt->date,"yyyy-MM-dd HH:mm:ss");
+      //tempTime.push_back(info.toSecsSinceEpoch());
+      ++npoints;
+      if ( dt->date < limit )
         break;
     }
-    tempTime.pop_back();
-    tempTime.squeeze();
+    //tempTime.pop_back();
+    //tempTime.squeeze();
+    --npoints;
   }
   else
   {
+    /*
     for( auto dt = data.rbegin(); dt != data.rend(); ++dt)
     {
       QDateTime info = QDateTime::fromString(dt->date,"yyyy-MM-dd HH:mm:ss");
       tempTime.push_back(info.toSecsSinceEpoch());
     }
+    */
+    npoints = ndata;
   }
 
-  int startingPoint = ndata-tempTime.size();
-  int npoints = tempTime.size();
+  //int npoints = tempTime.size();
+  int startingPoint = ndata-npoints;
 
-  if ( tempTime.size() > nmax )
+  //if ( tempTime.size() > nmax )
+  if ( npoints > nmax )
   {
     int groupBy = npoints/nmax;
     int ngrouped = npoints/groupBy;
@@ -265,7 +279,8 @@ void HomeCapt::processData(QVector<double> &time, QVector<double> &value)
       for (int subg=0; subg<groupBy; ++subg)
       {
         const int id = g*groupBy+subg;
-        accumTime+=tempTime[npoints-1-id];
+        //accumTime+=tempTime[npoints-1-id];
+        accumTime+=data[startingPoint+id].date;
         accumValue+=data[startingPoint+id].value;
       }
       time[g] = accumTime/groupBy;
@@ -273,7 +288,8 @@ void HomeCapt::processData(QVector<double> &time, QVector<double> &value)
     }
     for (int g=ngrouped*groupBy,i=ngrouped; g < npoints; ++g,++i)
     {
-      time[i]= tempTime[npoints-1-g];
+      //time[i]= tempTime[npoints-1-g];
+      time[i]= data[startingPoint+g].date;
       value[i]=data[startingPoint+g].value;
     }
   }
@@ -283,7 +299,8 @@ void HomeCapt::processData(QVector<double> &time, QVector<double> &value)
     value.resize(npoints);
     for (int i = startingPoint,j=0; i<ndata; ++i,++j)
     {
-      time[j]= tempTime[npoints-1-j];
+      //time[j]= tempTime[npoints-1-j];
+      time[j]= data[i].date;
       value[j]=data[i].value;
     }
   }
