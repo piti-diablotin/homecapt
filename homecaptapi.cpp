@@ -69,6 +69,11 @@ QString HomeCaptAPI::host()
   return _url;
 }
 
+QString HomeCaptAPI::user()
+{
+  return _user;
+}
+
 bool HomeCaptAPI::isReady()
 {
   return _ready;

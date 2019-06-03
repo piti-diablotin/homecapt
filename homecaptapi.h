@@ -64,6 +64,7 @@ class HomeCaptAPI : public QObject
     void connect(const QString &url);
     void auth(const QString &user, const QString &password);
     QString host();
+    QString user();
     bool isReady();
     QNetworkReply::NetworkError getError();
     const QList<Location> &locations();

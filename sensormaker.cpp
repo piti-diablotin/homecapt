@@ -11,7 +11,8 @@ SensorMaker::SensorMaker(HomeCaptAPI *api,QWidget *parent) :
   auto Locations = _api->locations();
   for ( auto loc = Locations.begin(); loc != Locations.end(); ++loc)
   {
-    ui->location->addItem(loc->name,loc->id);
+    if (loc->owner==_api->user())
+      ui->location->addItem(loc->name,loc->id);
   }
   auto Types = _api->sensorTypes();
   for ( auto t = Types.begin(); t != Types.end(); ++t)
