@@ -246,7 +246,7 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QCustomPlot" name="plot" native="true">
+         <widget class="QPlot" name="plot" native="true">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -440,9 +440,9 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>QCustomPlot</class>
+   <class>QPlot</class>
    <extends>QWidget</extends>
-   <header>qcustomplot.h</header>
+   <header>qplot.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

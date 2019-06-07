@@ -31,14 +31,16 @@ SOURCES += \
     homecaptapi.cpp \
     locationmaker.cpp \
     sensormaker.cpp \
-    qcustomplot.cpp
+    qcustomplot.cpp \
+    qplot.cpp
 
 HEADERS += \
         homecapt.h \
     homecaptapi.h \
     locationmaker.h \
     sensormaker.h \
-    qcustomplot.h
+    qcustomplot.h \
+    qplot.h
 
 FORMS += \
         homecapt.ui \

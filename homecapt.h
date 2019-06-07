@@ -6,6 +6,7 @@
 #include <QStandardItemModel>
 #include <QPushButton>
 #include <QVector>
+#include "qcustomplot.h"
 
 namespace Ui {
   class HomeCapt;
