@@ -10,7 +10,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
 TARGET = HomeCapt
 TEMPLATE = app
-
+PREFIX = /usr/
+target.path = $$PREFIX/bin
 CONFIG += static
 
 # The following define makes your compiler emit warnings if you use
@@ -24,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+VERSION = 1.0
 
 SOURCES += \
         main.cpp \
@@ -46,3 +48,23 @@ FORMS += \
         homecapt.ui \
     locationmaker.ui \
     sensormaker.ui
+
+RESOURCES += \
+    ressources.qrc
+
+DISTFILES += \
+    logo.svg \
+    homecapt.desktop
+
+logo.files = logo.svg
+logo.path = /usr/share/homecapt/images/
+
+desktop.files= homecapt.desktop
+desktop.path = /usr/share/applications/
+
+ICON = logo.svg
+
+INSTALLS += target
+
+unix:INSTALLS += logo desktop
+

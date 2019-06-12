@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=HomeCapt
+Comment=Visualize and share home information
+Exec=HomeCapt
+Icon=/usr/share/homecapt/images/logo.svg
+Terminal=false
+Type=Application
+Categories=Utility;
