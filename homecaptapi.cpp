@@ -226,10 +226,15 @@ void HomeCaptAPI::buildLocations(QNetworkReply *rep)
     _locations.clear();
     for ( auto loc = result.begin(); loc != result.end(); ++loc ){
       QJsonObject location = loc->toObject();
-      _locations << Location({ location["id"].toString().toInt(),
-                               location["owner"].toString(),
-                               location["name"].toString()
-                             });
+      Location l;
+      l.id = location["id"].toString().toInt();
+      l.owner = location["owner"].toString();
+      l.name = location["name"].toString();
+      _locations << l;
+   //   _locations << Location({ location["id"].toString().toInt(),
+     //                          location["owner"].toString(),
+       //                        location["name"].toString()
+         //                    });
     }
     std::sort(_locations.begin(),_locations.end(),
               [](const Location &l1, const Location &l2){return l1.name.toLower()<l2.name.toLower();});

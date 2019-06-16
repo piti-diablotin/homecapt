@@ -61,18 +61,16 @@ class HomeCaptAPI : public QObject
 
   public:
     explicit HomeCaptAPI(QObject *parent = nullptr);
-    void connect(const QString &url);
-    void auth(const QString &user, const QString &password);
-    QString host();
-    QString user();
-    bool isReady();
+    Q_INVOKABLE QString host();
+    Q_INVOKABLE QString user();
+    Q_INVOKABLE bool isReady();
     QNetworkReply::NetworkError getError();
-    const QList<Location> &locations();
-    const QList<Sensor> &sensors();
-    const QMap<int,SensorType> &sensorTypes();
-    void createLocation(const QString &name);
-    void createSensor(const QString &name, const int location, const int type, const QString &comment);
-    const QVector<Data> &data();
+    Q_INVOKABLE const QList<Location> &locations();
+    Q_INVOKABLE const QList<Sensor> &sensors();
+    Q_INVOKABLE const QMap<int,SensorType> &sensorTypes();
+    Q_INVOKABLE void createLocation(const QString &name);
+    Q_INVOKABLE void createSensor(const QString &name, const int location, const int type, const QString &comment);
+    Q_INVOKABLE const QVector<Data> &data();
 
   signals:
     void errorConnect();
@@ -91,6 +89,8 @@ class HomeCaptAPI : public QObject
 
 
   public slots:
+    void connect(const QString &url);
+    void auth(const QString &user, const QString &password);
     void fetchSensorTypes();
     void fetchSensors();
     void fetchLocations();
