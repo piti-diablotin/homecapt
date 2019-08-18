@@ -10,6 +10,9 @@
 #include <QJsonObject>
 #include <QMap>
 #include <QVector>
+#include <QtCharts/QLineSeries>
+
+QT_CHARTS_USE_NAMESPACE
 
 class HomeCaptAPI : public QObject
 {
@@ -51,26 +54,37 @@ class HomeCaptAPI : public QObject
     QNetworkRequest _request;
     QNetworkAccessManager _manager;
     QNetworkReply::NetworkError _error;
-    QList<Sensor> _sensors;
-    QList<Location> _locations;
+    QVector<Sensor> _sensors;
+    QVector<Location> _locations;
     QMap<int,SensorType> _sensorTypes;
     QVector<Data> _data;
-
+    QList<QPointF> _dataFrom;
     QJsonArray getResult(const QByteArray reply);
 
 
   public:
     explicit HomeCaptAPI(QObject *parent = nullptr);
-    Q_INVOKABLE QString host();
-    Q_INVOKABLE QString user();
-    Q_INVOKABLE bool isReady();
-    QNetworkReply::NetworkError getError();
-    Q_INVOKABLE const QList<Location> &locations();
-    Q_INVOKABLE const QList<Sensor> &sensors();
-    Q_INVOKABLE const QMap<int,SensorType> &sensorTypes();
-    Q_INVOKABLE void createLocation(const QString &name);
-    Q_INVOKABLE void createSensor(const QString &name, const int location, const int type, const QString &comment);
+    Q_INVOKABLE QString host() const;
+    Q_INVOKABLE QString user() const;
+    Q_INVOKABLE bool isReady() const;
+    QNetworkReply::NetworkError getError() const;
+    Q_INVOKABLE const QVector<Location> &locations() const;
+    Q_INVOKABLE const QVector<Sensor> &sensors() const;
+    Q_INVOKABLE const QMap<int,SensorType> &sensorTypesMap() const;
+    Q_INVOKABLE const QVector<SensorType> sensorTypes() const;
+    Q_INVOKABLE bool createLocation(const QString &name);
+    Q_INVOKABLE bool createSensor(const QString &name, const int location, const int type, const QString &comment);
     Q_INVOKABLE const QVector<Data> &data();
+    Q_INVOKABLE void data(QLineSeries* serie) const;
+    Q_INVOKABLE void preComputeDate(const int lastDays, const int nmax);
+    Q_INVOKABLE qint64 xmin();
+    Q_INVOKABLE qint64 xmax();
+    Q_INVOKABLE double ymin();
+    Q_INVOKABLE double ymax();
+    Q_INVOKABLE QString location(const int id);
+    Q_INVOKABLE QString sensor(const int id);
+    Q_INVOKABLE QString sensorUnit(const int id);
+
 
   signals:
     void errorConnect();
@@ -83,8 +97,10 @@ class HomeCaptAPI : public QObject
     void hasSensorTypes();
     void hasLocations();
     void hasSensors();
+    void preLocationCreation();
     void locationCreated();
     void sensorCreated();
+    void preSensorCreation();
     void hasData();
 
 
@@ -94,7 +110,7 @@ class HomeCaptAPI : public QObject
     void fetchSensorTypes();
     void fetchSensors();
     void fetchLocations();
-    void fetchData(int sensor);
+    void fetchData(int sensor, int from=0, int npoints=-1);
 
   protected slots:
     void replyFinishedConnect(QNetworkReply *rep);

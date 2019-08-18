@@ -34,21 +34,23 @@ class HomeCapt : public QMainWindow
 
     void on_addSensor_clicked();
 
-    void on_day1_clicked(bool checked);
+    void on_day1_clicked();
 
-    void on_week1_clicked(bool checked);
+    void on_week1_clicked();
 
-    void on_month1_clicked(bool checked);
+    void on_month1_clicked();
 
-    void on_month3_clicked(bool checked);
+    void on_month3_clicked();
 
-    void on_month6_clicked(bool checked);
+    void on_month6_clicked();
 
-    void on_year1_clicked(bool checked);
+    void on_year1_clicked();
 
-    void on_year5_clicked(bool checked);
+    void on_year5_clicked();
 
-    void on_max_clicked(bool checked);
+    void on_max_clicked();
+
+    void on_npoints_valueChanged(int arg1);
 
   private:
     Ui::HomeCapt *ui;
@@ -60,6 +62,7 @@ class HomeCapt : public QMainWindow
     QPushButton *_currentDurationButton;
 
     void processData(QVector<double> &time, QVector<double> &value);
+    void adjustData(QPushButton* button);
 };
 
 #endif // HOMECAPT_H

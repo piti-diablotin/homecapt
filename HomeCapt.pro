@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network
+QT       += core gui network charts
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
@@ -34,7 +34,8 @@ SOURCES += \
     locationmaker.cpp \
     sensormaker.cpp \
     qcustomplot.cpp \
-    qplot.cpp
+    qplot.cpp \
+    sensormodel.cpp
 
 HEADERS += \
         homecapt.h \
@@ -42,7 +43,8 @@ HEADERS += \
     locationmaker.h \
     sensormaker.h \
     qcustomplot.h \
-    qplot.h
+    qplot.h \
+    sensormodel.h
 
 FORMS += \
         homecapt.ui \

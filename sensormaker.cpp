@@ -7,7 +7,7 @@ SensorMaker::SensorMaker(HomeCaptAPI *api,QWidget *parent) :
   _api(api)
 {
   ui->setupUi(this);
-  if (_api == 0 || !_api->isReady()) this->reject();
+  if (_api == nullptr || !_api->isReady()) this->reject();
   auto Locations = _api->locations();
   for ( auto loc = Locations.begin(); loc != Locations.end(); ++loc)
   {

@@ -5,10 +5,13 @@
 #include <QDebug>
 #include <algorithm>
 #include <QUrlQuery>
+#include <cmath>
+#include <algorithm>
+#include <QDebug>
 
 QJsonArray HomeCaptAPI::getResult(const QByteArray reply)
 {
-  QString data = reply;
+    QString data = reply;
   QJsonObject check = QJsonDocument::fromJson(data.toUtf8()).object();
   if ( check.isEmpty() || check["return_code"].toInt() != 0 ) {
     emit(errorJson(check["message"].toString()));
@@ -31,9 +34,9 @@ HomeCaptAPI::HomeCaptAPI(QObject *parent) : QObject(parent),
   _sensors(),
   _locations(),
   _sensorTypes(),
-  _data()
+  _data(),
+  _dataFrom()
 {
-
 }
 
 void HomeCaptAPI::connect(const QString &url)
@@ -64,52 +67,66 @@ void HomeCaptAPI::auth(const QString &user, const QString &password)
   _manager.get(_request);
 }
 
-QString HomeCaptAPI::host()
+QString HomeCaptAPI::host() const
 {
   return _url;
 }
 
-QString HomeCaptAPI::user()
+QString HomeCaptAPI::user() const
 {
   return _user;
 }
 
-bool HomeCaptAPI::isReady()
+bool HomeCaptAPI::isReady() const
 {
   return _ready;
 }
 
-QNetworkReply::NetworkError HomeCaptAPI::getError()
+QNetworkReply::NetworkError HomeCaptAPI::getError() const
 {
   return _error;
 }
 
-const QList<HomeCaptAPI::Location> &HomeCaptAPI::locations()
+const QVector<HomeCaptAPI::Location> &HomeCaptAPI::locations() const
 {
   return _locations;
 }
 
-const QList<HomeCaptAPI::Sensor> &HomeCaptAPI::sensors()
+const QVector<HomeCaptAPI::Sensor> &HomeCaptAPI::sensors() const
 {
   return _sensors;
 }
 
-const QMap<int,HomeCaptAPI::SensorType> &HomeCaptAPI::sensorTypes()
+const QMap<int,HomeCaptAPI::SensorType> &HomeCaptAPI::sensorTypesMap() const
 {
   return _sensorTypes;
 }
 
-void HomeCaptAPI::createLocation(const QString &name)
+const QVector<HomeCaptAPI::SensorType> HomeCaptAPI::sensorTypes() const
 {
+  QVector<SensorType> types(_sensorTypes.size());
+  int i = 0;
+  for (auto it = _sensorTypes.begin(); it != _sensorTypes.end(); ++it)
+  {
+    types[i++] = *it;
+  }
+  return types;
+}
+
+bool HomeCaptAPI::createLocation(const QString &name)
+{
+  emit(preLocationCreation());
   _request.setUrl(QUrl(_url+"/create_location.php"));
   QUrlQuery query;
   query.addQueryItem("location_name",name);
   _manager.post(_request,query.query().toUtf8());
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(checkLocationCreated(QNetworkReply*)));
+  return true;
 }
 
-void HomeCaptAPI::createSensor(const QString &name, const int location, const int type, const QString &comment)
+bool HomeCaptAPI::createSensor(const QString &name, const int location, const int type, const QString &comment)
 {
+  emit(preSensorCreation());
   _request.setUrl(QUrl(_url+"/create_sensor.php"));
   QUrlQuery query;
   query.addQueryItem("sensor_name",name);
@@ -118,11 +135,139 @@ void HomeCaptAPI::createSensor(const QString &name, const int location, const in
   query.addQueryItem("sensor_comment",comment);
   _manager.post(_request,query.query().toUtf8());
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(checkSensorCreated(QNetworkReply*)));
+  return true;
 }
 
 const QVector<HomeCaptAPI::Data> &HomeCaptAPI::data()
 {
   return _data;
+}
+
+void HomeCaptAPI::data(QLineSeries *serie) const
+{
+  serie->clear();
+  serie->append(_dataFrom);
+}
+
+void HomeCaptAPI::preComputeDate(const int lastDays, const int nmax)
+{
+  _dataFrom.clear();
+  _dataFrom.reserve(nmax);
+  int ndata = _data.size();
+  if (ndata==0)
+  {
+    return;
+  }
+  int npoints = 0;
+  if (lastDays != -1)
+  {
+    qint64 limit = QDateTime::currentDateTime().addDays(-lastDays).toSecsSinceEpoch();
+    for( auto dt = _data.rbegin(); dt != _data.rend(); ++dt)
+    {
+      ++npoints;
+      if ( dt->date < limit )
+        break;
+    }
+    --npoints;
+  }
+  else
+  {
+    npoints = ndata;
+  }
+  int startingPoint = ndata-npoints;
+
+  if ( npoints > nmax )
+  {
+    int groupBy = static_cast<int>(std::ceil(static_cast<double>(npoints)/static_cast<double>(nmax)));
+    int ngrouped = npoints/groupBy;
+
+    for (int g=0; g < ngrouped; ++g)
+    {
+      double accumTime = 0;
+      double accumValue = 0;
+      for (int subg=0; subg<groupBy; ++subg)
+      {
+        const int id = g*groupBy+subg;
+        accumTime+=_data[startingPoint+id].date*1000.;
+        accumValue+=static_cast<double>(_data[startingPoint+id].value);
+      }
+      _dataFrom.push_back(QPointF(accumTime/groupBy,accumValue/groupBy));
+    }
+    for (int g=ngrouped*groupBy; g < npoints; ++g)
+    {
+      _dataFrom.push_back(QPointF(_data[startingPoint+g].date*1000.,static_cast<double>(_data[startingPoint+g].value)));
+    }
+  }
+  else
+  {
+    for (int i = startingPoint,j=0; i<ndata; ++i,++j)
+    {
+      _dataFrom.push_back(QPointF(_data[i].date*1000.,static_cast<double>(_data[i].value)));
+    }
+  }
+}
+
+qint64 HomeCaptAPI::xmin()
+{
+  return _dataFrom.size() > 0 ? static_cast<qint64>(_dataFrom.begin()->rx()) : 0;
+}
+
+qint64 HomeCaptAPI::xmax()
+{
+  return _dataFrom.size() > 0 ? static_cast<qint64>(_dataFrom.rbegin()->rx()) : 0;
+}
+
+double HomeCaptAPI::ymin()
+{
+  if (_dataFrom.size()>0)
+  {
+    auto miny = std::min_element(_dataFrom.begin(),_dataFrom.end(),[](QPointF p1, QPointF p2){return p1.ry()<p2.ry();});
+    return std::floor(miny->ry()/10)*10;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+double HomeCaptAPI::ymax()
+{
+  if (_dataFrom.size()>0)
+  {
+    auto maxy = std::max_element(_dataFrom.begin(),_dataFrom.end(),[](QPointF p1, QPointF p2){return p1.ry()<p2.ry();});
+    return std::ceil(maxy->ry()/10)*10;
+  }
+  else
+  {
+    return 100;
+  }
+}
+
+QString HomeCaptAPI::location(const int id)
+{
+   for (auto& loc : _locations)
+   {
+     if (loc.id == id) return loc.name;
+   }
+   return tr("Not found");
+}
+
+QString HomeCaptAPI::sensor(const int id)
+{
+   for (auto& sensor : _sensors)
+   {
+     if (sensor.id == id) return sensor.name;
+   }
+   return tr("Not found");
+}
+
+QString HomeCaptAPI::sensorUnit(const int id)
+{
+   for (auto& sensor : _sensors)
+   {
+     if (sensor.id == id) return _sensorTypes[sensor.type].unit;
+   }
+   return tr("Not found");
 }
 
 void HomeCaptAPI::fetchSensorTypes()
@@ -146,10 +291,12 @@ void HomeCaptAPI::fetchLocations()
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildLocations(QNetworkReply*)));
 }
 
-void HomeCaptAPI::fetchData(int sensor)
+void HomeCaptAPI::fetchData(int sensor, int from, int npoints)
 {
   QUrlQuery query;
   query.addQueryItem("sensor",QString::number(sensor));
+  query.addQueryItem("starting",QString::number(from));
+  query.addQueryItem("npoints",QString::number(npoints));
   _request.setUrl(QUrl(_url+"/get_data.php?"+query.query()));
   QObject::connect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildData(QNetworkReply*)));
   _manager.get(_request);
@@ -224,17 +371,13 @@ void HomeCaptAPI::buildLocations(QNetworkReply *rep)
     QObject::disconnect(&_manager,SIGNAL(finished(QNetworkReply*)), this, SLOT(buildLocations(QNetworkReply*)));
     QJsonArray result = getResult(rep->readAll());
     _locations.clear();
+
     for ( auto loc = result.begin(); loc != result.end(); ++loc ){
-      QJsonObject location = loc->toObject();
-      Location l;
-      l.id = location["id"].toString().toInt();
-      l.owner = location["owner"].toString();
-      l.name = location["name"].toString();
-      _locations << l;
-   //   _locations << Location({ location["id"].toString().toInt(),
-     //                          location["owner"].toString(),
-       //                        location["name"].toString()
-         //                    });
+      const QJsonObject location = loc->toObject();
+      _locations.append({ location["id"].toString().toInt(),
+                          location["owner"].toString(),
+                          location["name"].toString()
+                        });
     }
     std::sort(_locations.begin(),_locations.end(),
               [](const Location &l1, const Location &l2){return l1.name.toLower()<l2.name.toLower();});
@@ -255,13 +398,13 @@ void HomeCaptAPI::buildSensors(QNetworkReply *rep)
     _sensors.clear();
     for ( auto sens = result.begin(); sens != result.end(); ++sens){
       QJsonObject sensor = sens->toObject();
-      _sensors << Sensor({ sensor["id"].toString().toInt(),
-                           sensor["type"].toString().toInt(),
-                           sensor["location"].toString().toInt(),
-                           sensor["owner"].toString(),
-                           sensor["name"].toString(),
-                           sensor["comment"].toString()
-                         });
+      _sensors.append({ sensor["id"].toString().toInt(),
+                        sensor["type"].toString().toInt(),
+                        sensor["location"].toString().toInt(),
+                        sensor["owner"].toString(),
+                        sensor["name"].toString(),
+                        sensor["comment"].toString()
+                      });
     }
     std::sort(_sensors.begin(),_sensors.end(),
               [](const Sensor s1,const Sensor s2){return s1.name.toLower()<s2.name.toLower();});
@@ -287,10 +430,10 @@ void HomeCaptAPI::checkLocationCreated(QNetworkReply *rep)
     else
     {
       QJsonObject location = result.begin()->toObject();
-      _locations << Location({ location["id"].toString().toInt(),
-                               location["owner"].toString(),
-                               location["location"].toString()
-                             });
+      _locations.append({ location["id"].toString().toInt(),
+                          location["owner"].toString(),
+                          location["location"].toString()
+                        });
       std::sort(_locations.begin(),_locations.end(),
                 [](const Location &l1, const Location &l2){return l1.name.toLower()<l2.name.toLower();});
 
@@ -317,13 +460,13 @@ void HomeCaptAPI::checkSensorCreated(QNetworkReply *rep)
     else
     {
       QJsonObject sensor = result.begin()->toObject();
-      _sensors << Sensor({ sensor["id"].toString().toInt(),
-                           sensor["type"].toString().toInt(),
-                           sensor["location"].toString().toInt(),
-                           sensor["owner"].toString(),
-                           sensor["name"].toString(),
-                           sensor["comment"].toString()
-                         });
+      _sensors.append({ sensor["id"].toString().toInt(),
+                        sensor["type"].toString().toInt(),
+                        sensor["location"].toString().toInt(),
+                        sensor["owner"].toString(),
+                        sensor["name"].toString(),
+                        sensor["comment"].toString()
+                      });
       std::sort(_sensors.begin(),_sensors.end(),
                 [](const Sensor s1,const Sensor s2){return s1.name.toLower()<s2.name.toLower();});
       emit(sensorCreated());
@@ -347,8 +490,8 @@ void HomeCaptAPI::buildData(QNetworkReply *rep)
     for ( auto dat = result.begin(); dat != result.end(); ++dat ){
       QJsonObject data = dat->toObject();
       _data[i++] = Data({ data["date"].toString().toInt(),
-                         data["value"].toString().toFloat()
-                       });
+                          data["value"].toString().toFloat()
+                        });
     }
     emit(hasData());
   }
