@@ -349,8 +349,8 @@ void HomeCaptAPI::buildSensorTypes(QNetworkReply *rep)
     _sensorTypes.clear();
     for ( auto t = result.begin(); t != result.end(); ++t){
       QJsonObject type = t->toObject();
-      _sensorTypes[type["id"].toString().toInt()] = SensorType({
-                                                                 type["id"].toString().toInt(),
+      _sensorTypes[type["id"].toInt()] = SensorType({
+                                                                 type["id"].toInt(),
                                                                  type["quantity"].toString(),
                                                                  type["unit"].toString()
                                                                });
@@ -374,7 +374,7 @@ void HomeCaptAPI::buildLocations(QNetworkReply *rep)
 
     for ( auto loc = result.begin(); loc != result.end(); ++loc ){
       const QJsonObject location = loc->toObject();
-      _locations.append({ location["id"].toString().toInt(),
+      _locations.append({ location["id"].toInt(),
                           location["owner"].toString(),
                           location["name"].toString()
                         });
@@ -398,9 +398,9 @@ void HomeCaptAPI::buildSensors(QNetworkReply *rep)
     _sensors.clear();
     for ( auto sens = result.begin(); sens != result.end(); ++sens){
       QJsonObject sensor = sens->toObject();
-      _sensors.append({ sensor["id"].toString().toInt(),
-                        sensor["type"].toString().toInt(),
-                        sensor["location"].toString().toInt(),
+      _sensors.append({ sensor["id"].toInt(),
+                        sensor["type"].toInt(),
+                        sensor["location"].toInt(),
                         sensor["owner"].toString(),
                         sensor["name"].toString(),
                         sensor["comment"].toString()
@@ -430,7 +430,7 @@ void HomeCaptAPI::checkLocationCreated(QNetworkReply *rep)
     else
     {
       QJsonObject location = result.begin()->toObject();
-      _locations.append({ location["id"].toString().toInt(),
+      _locations.append({ location["id"].toInt(),
                           location["owner"].toString(),
                           location["location"].toString()
                         });
@@ -460,9 +460,9 @@ void HomeCaptAPI::checkSensorCreated(QNetworkReply *rep)
     else
     {
       QJsonObject sensor = result.begin()->toObject();
-      _sensors.append({ sensor["id"].toString().toInt(),
-                        sensor["type"].toString().toInt(),
-                        sensor["location"].toString().toInt(),
+      _sensors.append({ sensor["id"].toInt(),
+                        sensor["type"].toInt(),
+                        sensor["location"].toInt(),
                         sensor["owner"].toString(),
                         sensor["name"].toString(),
                         sensor["comment"].toString()
@@ -489,8 +489,8 @@ void HomeCaptAPI::buildData(QNetworkReply *rep)
     int i = 0;
     for ( auto dat = result.begin(); dat != result.end(); ++dat ){
       QJsonObject data = dat->toObject();
-      _data[i++] = Data({ data["date"].toString().toInt(),
-                          data["value"].toString().toFloat()
+      _data[i++] = Data({ data["date"].toInt(),
+                          static_cast<float>(data["value"].toDouble())
                         });
     }
     emit(hasData());
