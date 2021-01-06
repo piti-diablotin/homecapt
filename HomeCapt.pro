@@ -34,8 +34,7 @@ SOURCES += \
     locationmaker.cpp \
     sensormaker.cpp \
     qcustomplot.cpp \
-    qplot.cpp \
-    sensormodel.cpp
+    qplot.cpp
 
 HEADERS += \
         homecapt.h \
@@ -43,8 +42,7 @@ HEADERS += \
     locationmaker.h \
     sensormaker.h \
     qcustomplot.h \
-    qplot.h \
-    sensormodel.h
+    qplot.h
 
 FORMS += \
         homecapt.ui \
